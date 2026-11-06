@@ -65,15 +65,15 @@ Cámbiala por la IP real cuando la tengas. El indicador “Servidor Online” es
 
 ## Música
 
-La música está en `src/assets/audio/dark-fantasy-theme.mp3` (copia del MP3 que dejaste en la raíz; el original se conserva como respaldo).
+La música está en `src/assets/audio/dark-fantasy-theme.mp3` (copia del MP3 original; el archivo de la raíz se conserva solo como respaldo local y está ignorado por git).
 
-- La intro **“Entrar en la Puerta”** aparece siempre al cargar y pide un clic. Es necesaria porque los navegadores bloquean el audio con sonido sin interacción.
-- El tema se reproduce en bucle infinito con **crossfade de 2 segundos** entre dos instancias de audio.
-- El control flotante inferior izquierdo permite **silenciar/activar** y ajustar el **volumen**.
+- Al cargar, las puertas de la Puerta se abren automáticamente.
+- La música intenta reproducirse sola. Si el navegador la bloquea, empieza silenciada y se activa con el primer clic, toque o tecla, sin ningún modal.
+- El tema se reproduce en bucle infinito con crossfade de 2 segundos.
+- El control flotante inferior izquierdo permite silenciar/activar y ajustar el volumen.
 - Se recuerdan en `localStorage` el estado de música y el volumen.
-- Si el usuario entra sin música, puede activarla después desde el control.
 - La configuración de volumen y crossfade está en `MUSIC_CONFIG` dentro de `src/data/config.ts`.
-- El MP3 pesa 5,4 MB. Si quieres optimizar la carga, se puede recomprimir a 128–192 kbps sin pérdida apreciable para un fondo.
+- El MP3 pesa 5,4 MB. Si quieres optimizar la carga, se puede recomprimir a 128–192 kbps.
 
 ## Estructura
 
@@ -107,7 +107,7 @@ src/
 ## Accesibilidad y rendimiento
 
 - HTML semántico, `aria` en tabs, acordeón, diálogo móvil, intro y estados de copiado.
-- La intro de música bloquea el fondo con `inert` y atrapa el foco entre sus dos botones.
+- Las puertas bloquean el fondo con `inert` mientras están cerradas.
 - Foco visible, contraste alto y objetivos táctiles de 44px.
 - `prefers-reduced-motion` desactiva animaciones no esenciales.
 - El cielo se pausa al ocultar la pestaña y baja resolución en móvil.
