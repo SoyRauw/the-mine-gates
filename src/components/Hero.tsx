@@ -8,7 +8,6 @@ import {
 } from "motion/react";
 import type { PointerEvent } from "react";
 import { CONFIG } from "../data/config";
-import { useMusic } from "./Music/music-context";
 import { ConfigLink } from "./ui/ConfigLink";
 import { IpWidget } from "./IpWidget";
 import { HeroGate } from "./HeroGate";
@@ -33,9 +32,8 @@ const item: Variants = {
   },
 };
 
-export function Hero() {
+export function Hero({ doorsOpen }: { doorsOpen: boolean }) {
   const reduce = useReducedMotion();
-  const { hasEntered } = useMusic();
   const pointerX = useMotionValue(50);
   const pointerY = useMotionValue(42);
   const springX = useSpring(pointerX, { stiffness: 55, damping: 22 });
@@ -67,7 +65,7 @@ export function Hero() {
         className="hero__content"
         variants={container}
         initial={reduce ? false : "hidden"}
-        animate={reduce || hasEntered ? "show" : "hidden"}
+        animate={reduce || doorsOpen ? "show" : "hidden"}
       >
         <motion.div className="hero__sigil" variants={item} aria-hidden="true">
           <RuneIcon variant="eldritch" size={58} />
@@ -79,14 +77,14 @@ export function Hero() {
 
         <motion.h1
           id="hero-title"
-          className={`fd-title hero__title${hasEntered ? " is-entered" : ""}`}
+          className={`fd-title hero__title${doorsOpen ? " is-entered" : ""}`}
           initial={
             reduce
               ? false
               : { opacity: 0, clipPath: "inset(0 100% 0 0)" }
           }
           animate={
-            reduce || hasEntered
+            reduce || doorsOpen
               ? { opacity: 1, clipPath: "inset(0 0 0 0)" }
               : { opacity: 0, clipPath: "inset(0 100% 0 0)" }
           }
@@ -143,7 +141,7 @@ export function Hero() {
         href="#lore"
         variants={item}
         initial={reduce ? false : { opacity: 0 }}
-        animate={{ opacity: reduce || hasEntered ? 1 : 0 }}
+        animate={{ opacity: reduce || doorsOpen ? 1 : 0 }}
         transition={{ delay: 1.3, duration: 0.6 }}
       >
         <motion.span
