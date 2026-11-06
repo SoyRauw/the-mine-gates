@@ -44,11 +44,10 @@ function persist(key: string, value: string) {
 
 export function MusicProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
-  const [hasEntered, setHasEntered] = useState(false);
   const [enabled, setEnabled] = useState(readStoredEnabled);
   const [volume, setVolumeState] = useState(readStoredVolume);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
   const audioARef = useRef<HTMLAudioElement>(null);
   const audioBRef = useRef<HTMLAudioElement>(null);
@@ -57,7 +56,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const fadingRef = useRef(false);
   const enabledRef = useRef(enabled);
   const volumeRef = useRef(volume);
-  const hasEnteredRef = useRef(hasEntered);
   const errorShownRef = useRef(false);
 
   useEffect(() => {
@@ -67,10 +65,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     volumeRef.current = volume;
   }, [volume]);
-
-  useEffect(() => {
-    hasEnteredRef.current = hasEntered;
-  }, [hasEntered]);
 
   const getActive = useCallback(
     () => (activeSlotRef.current === "a" ? audioARef.current : audioBRef.current),
@@ -109,22 +103,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   const playActive = useCallback(async () => {
     const active = getActive();
+    const inactive = getInactive();
     if (!active) return;
+
+    active.muted = false;
+    if (inactive) inactive.muted = false;
 
     const base = enabledRef.current ? volumeRef.current : 0;
     if (!fadingRef.current) applyVolume(base);
-    active.volume = base;
 
     try {
       await active.play();
       setIsPlaying(true);
+      setAutoplayBlocked(false);
     } catch {
       setIsPlaying(false);
-      showToast(
-        "El navegador bloqueó el audio. Pulsa el control de música para activarlo.",
-      );
     }
-  }, [applyVolume, getActive, showToast]);
+  }, [applyVolume, getActive, getInactive]);
 
   const startCrossfade = useCallback(() => {
     if (fadingRef.current || !enabledRef.current) return;
@@ -135,6 +130,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     fadingRef.current = true;
     next.currentTime = 0;
     next.volume = 0;
+    next.muted = current.muted;
 
     const start = performance.now();
     const duration = MUSIC_CONFIG.crossfadeSeconds * 1000;
@@ -202,42 +198,103 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     [getActive],
   );
 
-  const handleCanPlay = useCallback(() => {
-    setIsReady(true);
-  }, []);
-
   const handleError = useCallback(() => {
     if (errorShownRef.current) return;
     errorShownRef.current = true;
     showToast("No se pudo cargar la música de la Puerta.");
   }, [showToast]);
 
-  const enter = useCallback(
-    (withMusic: boolean) => {
-      setHasEntered(true);
-      hasEnteredRef.current = true;
-      setEnabled(withMusic);
-      enabledRef.current = withMusic;
-      persist(MUSIC_CONFIG.enabledStorageKey, withMusic ? "1" : "0");
+  const unlockAudio = useCallback(() => {
+    const active = getActive();
+    const inactive = getInactive();
+    if (!active) return;
 
-      if (!withMusic) {
-        pauseAll();
-        return;
+    let nextVolume = volumeRef.current;
+    if (nextVolume === 0) {
+      nextVolume = MUSIC_CONFIG.defaultVolume;
+      setVolumeState(nextVolume);
+      volumeRef.current = nextVolume;
+      persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
+    }
+
+    setEnabled(true);
+    enabledRef.current = true;
+    persist(MUSIC_CONFIG.enabledStorageKey, "1");
+    setAutoplayBlocked(false);
+
+    active.muted = false;
+    if (inactive) inactive.muted = false;
+    if (!fadingRef.current) applyVolume(nextVolume);
+
+    void active
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false));
+  }, [applyVolume, getActive, getInactive]);
+
+  useEffect(() => {
+    if (!enabledRef.current) return;
+    const active = getActive();
+    const inactive = getInactive();
+    if (!active) return;
+
+    let cancelled = false;
+
+    const attempt = async () => {
+      active.volume = volumeRef.current;
+      active.muted = false;
+
+      try {
+        await active.play();
+        if (!cancelled) {
+          setIsPlaying(true);
+          setAutoplayBlocked(false);
+        }
+      } catch {
+        if (cancelled) return;
+
+        setAutoplayBlocked(true);
+        active.muted = true;
+        if (inactive) inactive.muted = true;
+
+        try {
+          await active.play();
+          if (!cancelled) setIsPlaying(true);
+        } catch {
+          if (!cancelled) setIsPlaying(false);
+        }
       }
+    };
 
-      if (volumeRef.current === 0) {
-        const nextVolume = MUSIC_CONFIG.defaultVolume;
-        setVolumeState(nextVolume);
-        volumeRef.current = nextVolume;
-        persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
-      }
+    void attempt();
+    return () => {
+      cancelled = true;
+    };
+  }, [getActive, getInactive]);
 
-      void playActive();
-    },
-    [pauseAll, playActive],
-  );
+  useEffect(() => {
+    if (!autoplayBlocked) return;
+
+    const unlock = () => unlockAudio();
+    const events = ["pointerdown", "keydown", "touchstart", "wheel"];
+
+    events.forEach((event) => {
+      window.addEventListener(event, unlock, { once: true });
+    });
+
+    return () => {
+      events.forEach((event) => {
+        window.removeEventListener(event, unlock);
+      });
+    };
+  }, [autoplayBlocked, unlockAudio]);
 
   const toggle = useCallback(() => {
+    if (autoplayBlocked) {
+      unlockAudio();
+      return;
+    }
+
     if (enabledRef.current && volumeRef.current > 0) {
       setEnabled(false);
       enabledRef.current = false;
@@ -257,10 +314,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setEnabled(true);
     enabledRef.current = true;
     persist(MUSIC_CONFIG.enabledStorageKey, "1");
-    if (hasEnteredRef.current) {
-      void playActive();
-    }
-  }, [pauseAll, playActive]);
+    void playActive();
+  }, [autoplayBlocked, pauseAll, playActive, unlockAudio]);
 
   const setVolume = useCallback(
     (value: number) => {
@@ -269,7 +324,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       volumeRef.current = nextVolume;
       persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
 
-      if (nextVolume > 0 && !enabledRef.current && hasEnteredRef.current) {
+      if (nextVolume > 0 && autoplayBlocked) {
+        unlockAudio();
+        return;
+      }
+
+      if (nextVolume > 0 && !enabledRef.current) {
         setEnabled(true);
         enabledRef.current = true;
         persist(MUSIC_CONFIG.enabledStorageKey, "1");
@@ -280,30 +340,23 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         applyVolume(enabledRef.current ? nextVolume : 0);
       }
     },
-    [applyVolume, playActive],
+    [applyVolume, autoplayBlocked, playActive, unlockAudio],
   );
 
   useEffect(() => {
     const audioA = audioARef.current;
     const audioB = audioBRef.current;
 
-    const onVisibilityChange = () => {
-      if (document.hidden || !enabledRef.current || !hasEnteredRef.current) {
-        return;
-      }
+    const resume = () => {
+      if (document.hidden || !enabledRef.current) return;
       const active = getActive();
       if (active?.paused) {
-        void playActive();
+        void active.play().catch(() => {});
       }
     };
 
-    const onPageShow = () => {
-      if (!enabledRef.current || !hasEnteredRef.current) return;
-      const active = getActive();
-      if (active?.paused) {
-        void playActive();
-      }
-    };
+    const onVisibilityChange = () => resume();
+    const onPageShow = () => resume();
 
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("pageshow", onPageShow);
@@ -314,22 +367,18 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       audioA?.pause();
       audioB?.pause();
     };
-  }, [cancelFade, getActive, playActive]);
+  }, [cancelFade, getActive]);
 
-  const isMuted = !enabled || volume === 0;
-  const preferredMusic = enabled && volume > 0;
+  const isMuted = !enabled || volume === 0 || autoplayBlocked;
 
   return (
     <MusicContext.Provider
       value={{
-        hasEntered,
         enabled,
         isPlaying,
         isMuted,
-        preferredMusic,
+        isBlocked: autoplayBlocked,
         volume,
-        isReady,
-        enter,
         toggle,
         setVolume,
       }}
@@ -340,7 +389,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         className="music-audio"
         src={themeMusic}
         preload="auto"
-        onCanPlay={handleCanPlay}
         onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
         onEnded={(event) => handleEnded(event.currentTarget)}
         onError={handleError}
@@ -350,7 +398,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         className="music-audio"
         src={themeMusic}
         preload="auto"
-        onCanPlay={handleCanPlay}
         onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
         onEnded={(event) => handleEnded(event.currentTarget)}
         onError={handleError}
