@@ -1,0 +1,360 @@
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import themeMusic from "../../assets/audio/dark-fantasy-theme.mp3";
+import { MUSIC_CONFIG } from "../../data/config";
+import { useToast } from "../ui/toast-context";
+import { MusicContext } from "./music-context";
+
+type AudioSlot = "a" | "b";
+
+function readStoredEnabled(): boolean {
+  try {
+    const stored = window.localStorage.getItem(MUSIC_CONFIG.enabledStorageKey);
+    return stored === null ? true : stored === "1";
+  } catch {
+    return true;
+  }
+}
+
+function readStoredVolume(): number {
+  try {
+    const stored = window.localStorage.getItem(MUSIC_CONFIG.volumeStorageKey);
+    if (stored === null) return MUSIC_CONFIG.defaultVolume;
+    const parsed = Number(stored);
+    return Number.isFinite(parsed)
+      ? Math.min(1, Math.max(0, parsed))
+      : MUSIC_CONFIG.defaultVolume;
+  } catch {
+    return MUSIC_CONFIG.defaultVolume;
+  }
+}
+
+function persist(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Private browsing / storage blocked: the session still works.
+  }
+}
+
+export function MusicProvider({ children }: { children: ReactNode }) {
+  const { showToast } = useToast();
+  const [hasEntered, setHasEntered] = useState(false);
+  const [enabled, setEnabled] = useState(readStoredEnabled);
+  const [volume, setVolumeState] = useState(readStoredVolume);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  const audioARef = useRef<HTMLAudioElement>(null);
+  const audioBRef = useRef<HTMLAudioElement>(null);
+  const activeSlotRef = useRef<AudioSlot>("a");
+  const fadeFrameRef = useRef<number | null>(null);
+  const fadingRef = useRef(false);
+  const enabledRef = useRef(enabled);
+  const volumeRef = useRef(volume);
+  const hasEnteredRef = useRef(hasEntered);
+  const errorShownRef = useRef(false);
+
+  useEffect(() => {
+    enabledRef.current = enabled;
+  }, [enabled]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  useEffect(() => {
+    hasEnteredRef.current = hasEntered;
+  }, [hasEntered]);
+
+  const getActive = useCallback(
+    () => (activeSlotRef.current === "a" ? audioARef.current : audioBRef.current),
+    [],
+  );
+
+  const getInactive = useCallback(
+    () => (activeSlotRef.current === "a" ? audioBRef.current : audioARef.current),
+    [],
+  );
+
+  const applyVolume = useCallback(
+    (value: number) => {
+      const active = getActive();
+      const inactive = getInactive();
+      if (active) active.volume = value;
+      if (inactive) inactive.volume = value;
+    },
+    [getActive, getInactive],
+  );
+
+  const cancelFade = useCallback(() => {
+    if (fadeFrameRef.current !== null) {
+      cancelAnimationFrame(fadeFrameRef.current);
+      fadeFrameRef.current = null;
+    }
+    fadingRef.current = false;
+  }, []);
+
+  const pauseAll = useCallback(() => {
+    cancelFade();
+    audioARef.current?.pause();
+    audioBRef.current?.pause();
+    setIsPlaying(false);
+  }, [cancelFade]);
+
+  const playActive = useCallback(async () => {
+    const active = getActive();
+    if (!active) return;
+
+    const base = enabledRef.current ? volumeRef.current : 0;
+    if (!fadingRef.current) applyVolume(base);
+    active.volume = base;
+
+    try {
+      await active.play();
+      setIsPlaying(true);
+    } catch {
+      setIsPlaying(false);
+      showToast(
+        "El navegador bloqueó el audio. Pulsa el control de música para activarlo.",
+      );
+    }
+  }, [applyVolume, getActive, showToast]);
+
+  const startCrossfade = useCallback(() => {
+    if (fadingRef.current || !enabledRef.current) return;
+    const current = getActive();
+    const next = getInactive();
+    if (!current || !next) return;
+
+    fadingRef.current = true;
+    next.currentTime = 0;
+    next.volume = 0;
+
+    const start = performance.now();
+    const duration = MUSIC_CONFIG.crossfadeSeconds * 1000;
+
+    const step = (now: number) => {
+      if (!fadingRef.current) return;
+      const base = enabledRef.current ? volumeRef.current : 0;
+      const progress = Math.min(1, (now - start) / duration);
+      current.volume = base * (1 - progress);
+      next.volume = base * progress;
+
+      if (progress < 1) {
+        fadeFrameRef.current = requestAnimationFrame(step);
+        return;
+      }
+
+      current.pause();
+      current.currentTime = 0;
+      current.volume = base;
+      next.volume = base;
+      activeSlotRef.current = activeSlotRef.current === "a" ? "b" : "a";
+      fadingRef.current = false;
+      fadeFrameRef.current = null;
+    };
+
+    void next
+      .play()
+      .then(() => {
+        fadeFrameRef.current = requestAnimationFrame(step);
+      })
+      .catch(() => {
+        fadingRef.current = false;
+        next.volume = 0;
+      });
+  }, [getActive, getInactive]);
+
+  const handleTimeUpdate = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (
+        audio !== getActive() ||
+        fadingRef.current ||
+        !enabledRef.current ||
+        audio.paused
+      ) {
+        return;
+      }
+      if (!Number.isFinite(audio.duration) || audio.duration <= 0) return;
+      if (audio.duration <= MUSIC_CONFIG.crossfadeSeconds * 3) return;
+
+      const remaining = audio.duration - audio.currentTime;
+      if (remaining <= MUSIC_CONFIG.crossfadeSeconds) {
+        startCrossfade();
+      }
+    },
+    [getActive, startCrossfade],
+  );
+
+  const handleEnded = useCallback(
+    (audio: HTMLAudioElement) => {
+      if (fadingRef.current || audio !== getActive()) return;
+      if (!enabledRef.current) return;
+      audio.currentTime = 0;
+      void audio.play().catch(() => setIsPlaying(false));
+    },
+    [getActive],
+  );
+
+  const handleCanPlay = useCallback(() => {
+    setIsReady(true);
+  }, []);
+
+  const handleError = useCallback(() => {
+    if (errorShownRef.current) return;
+    errorShownRef.current = true;
+    showToast("No se pudo cargar la música de la Puerta.");
+  }, [showToast]);
+
+  const enter = useCallback(
+    (withMusic: boolean) => {
+      setHasEntered(true);
+      hasEnteredRef.current = true;
+      setEnabled(withMusic);
+      enabledRef.current = withMusic;
+      persist(MUSIC_CONFIG.enabledStorageKey, withMusic ? "1" : "0");
+
+      if (!withMusic) {
+        pauseAll();
+        return;
+      }
+
+      if (volumeRef.current === 0) {
+        const nextVolume = MUSIC_CONFIG.defaultVolume;
+        setVolumeState(nextVolume);
+        volumeRef.current = nextVolume;
+        persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
+      }
+
+      void playActive();
+    },
+    [pauseAll, playActive],
+  );
+
+  const toggle = useCallback(() => {
+    if (enabledRef.current && volumeRef.current > 0) {
+      setEnabled(false);
+      enabledRef.current = false;
+      persist(MUSIC_CONFIG.enabledStorageKey, "0");
+      pauseAll();
+      return;
+    }
+
+    let nextVolume = volumeRef.current;
+    if (nextVolume === 0) {
+      nextVolume = MUSIC_CONFIG.defaultVolume;
+      setVolumeState(nextVolume);
+      volumeRef.current = nextVolume;
+      persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
+    }
+
+    setEnabled(true);
+    enabledRef.current = true;
+    persist(MUSIC_CONFIG.enabledStorageKey, "1");
+    if (hasEnteredRef.current) {
+      void playActive();
+    }
+  }, [pauseAll, playActive]);
+
+  const setVolume = useCallback(
+    (value: number) => {
+      const nextVolume = Math.min(1, Math.max(0, value));
+      setVolumeState(nextVolume);
+      volumeRef.current = nextVolume;
+      persist(MUSIC_CONFIG.volumeStorageKey, String(nextVolume));
+
+      if (nextVolume > 0 && !enabledRef.current && hasEnteredRef.current) {
+        setEnabled(true);
+        enabledRef.current = true;
+        persist(MUSIC_CONFIG.enabledStorageKey, "1");
+        void playActive();
+      }
+
+      if (!fadingRef.current) {
+        applyVolume(enabledRef.current ? nextVolume : 0);
+      }
+    },
+    [applyVolume, playActive],
+  );
+
+  useEffect(() => {
+    const audioA = audioARef.current;
+    const audioB = audioBRef.current;
+
+    const onVisibilityChange = () => {
+      if (document.hidden || !enabledRef.current || !hasEnteredRef.current) {
+        return;
+      }
+      const active = getActive();
+      if (active?.paused) {
+        void playActive();
+      }
+    };
+
+    const onPageShow = () => {
+      if (!enabledRef.current || !hasEnteredRef.current) return;
+      const active = getActive();
+      if (active?.paused) {
+        void playActive();
+      }
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pageshow", onPageShow);
+      cancelFade();
+      audioA?.pause();
+      audioB?.pause();
+    };
+  }, [cancelFade, getActive, playActive]);
+
+  const isMuted = !enabled || volume === 0;
+  const preferredMusic = enabled && volume > 0;
+
+  return (
+    <MusicContext.Provider
+      value={{
+        hasEntered,
+        enabled,
+        isPlaying,
+        isMuted,
+        preferredMusic,
+        volume,
+        isReady,
+        enter,
+        toggle,
+        setVolume,
+      }}
+    >
+      {children}
+      <audio
+        ref={audioARef}
+        className="music-audio"
+        src={themeMusic}
+        preload="auto"
+        onCanPlay={handleCanPlay}
+        onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+        onEnded={(event) => handleEnded(event.currentTarget)}
+        onError={handleError}
+      />
+      <audio
+        ref={audioBRef}
+        className="music-audio"
+        src={themeMusic}
+        preload="auto"
+        onCanPlay={handleCanPlay}
+        onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
+        onEnded={(event) => handleEnded(event.currentTarget)}
+        onError={handleError}
+      />
+    </MusicContext.Provider>
+  );
+}
