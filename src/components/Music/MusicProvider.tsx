@@ -275,11 +275,17 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!autoplayBlocked) return;
 
-    const unlock = () => unlockAudio();
+    const unlock = (event: Event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(".music-control")) {
+        return;
+      }
+      unlockAudio();
+    };
     const events = ["pointerdown", "keydown", "touchstart", "wheel"];
 
     events.forEach((event) => {
-      window.addEventListener(event, unlock, { once: true });
+      window.addEventListener(event, unlock);
     });
 
     return () => {
