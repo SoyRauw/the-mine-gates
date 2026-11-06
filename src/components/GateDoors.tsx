@@ -10,13 +10,11 @@ export function GateDoors({
   onFinished: () => void;
 }) {
   const reduce = useReducedMotion();
-  const [open, setOpen] = useState(false);
-  const [hidden, setHidden] = useState(false);
+  const [open, setOpen] = useState(reduce === true);
+  const [hidden, setHidden] = useState(reduce === true);
 
   useEffect(() => {
     if (reduce) {
-      setOpen(true);
-      setHidden(true);
       onOpened();
       onFinished();
       return;
