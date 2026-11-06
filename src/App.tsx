@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from "react";
 import { Sky } from "./components/Sky";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -9,10 +10,42 @@ import { Rules } from "./components/Rules";
 import { Footer } from "./components/Footer";
 import { ToastProvider } from "./components/ui/Toast";
 import { MusicProvider } from "./components/Music/MusicProvider";
-import { GateIntro } from "./components/Music/GateIntro";
-import { MusicControl } from "./components/Music/MusicControl";
+import { MusicControlBar } from "./components/Music/MusicControlBar";
+import { GateDoors } from "./components/GateDoors";
 
 function App() {
+  const [doorsOpen, setDoorsOpen] = useState(false);
+  const [doorsFinished, setDoorsFinished] = useState(false);
+
+  const handleDoorsOpened = useCallback(() => setDoorsOpen(true), []);
+  const handleDoorsFinished = useCallback(() => setDoorsFinished(true), []);
+
+  useEffect(() => {
+    if (doorsFinished) {
+      document.body.classList.remove("doors-closed");
+      return;
+    }
+
+    document.body.classList.add("doors-closed");
+    const inertTargets = [
+      document.querySelector<HTMLElement>(".navbar"),
+      document.getElementById("contenido"),
+      document.querySelector<HTMLElement>(".footer"),
+      document.querySelector<HTMLElement>(".skip-link"),
+    ].filter((element): element is HTMLElement => Boolean(element));
+
+    inertTargets.forEach((element) => {
+      element.inert = true;
+    });
+
+    return () => {
+      document.body.classList.remove("doors-closed");
+      inertTargets.forEach((element) => {
+        element.inert = false;
+      });
+    };
+  }, [doorsFinished]);
+
   return (
     <ToastProvider>
       <MusicProvider>
@@ -28,7 +61,7 @@ function App() {
           <Navbar />
 
           <main id="contenido">
-            <Hero />
+            <Hero doorsOpen={doorsOpen} />
             <div className="page-body">
               <Lore />
               <MagicSection />
@@ -39,8 +72,11 @@ function App() {
           </main>
 
           <Footer />
-          <MusicControl />
-          <GateIntro />
+          <MusicControlBar visible={doorsFinished} />
+          <GateDoors
+            onOpened={handleDoorsOpened}
+            onFinished={handleDoorsFinished}
+          />
         </div>
       </MusicProvider>
     </ToastProvider>
