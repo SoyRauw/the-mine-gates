@@ -93,6 +93,13 @@ export function Whitelist() {
           setError(
             "Ya existe una solicitud pendiente para ese usuario de Minecraft.",
           );
+        } else if (
+          insertError.code === "42P01" ||
+          insertError.code === "PGRST205"
+        ) {
+          setError(
+            "El registro todavía se está preparando. Inténtalo de nuevo más tarde.",
+          );
         } else if (insertError.code === "42501") {
           setError(
             "El registro no tiene permisos para guardar solicitudes. Avisa al staff.",

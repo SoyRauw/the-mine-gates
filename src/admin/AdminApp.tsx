@@ -202,7 +202,7 @@ function StaffLogin({
 }
 
 function describeLoadError(error: { code?: string; message: string }): string {
-  if (error.code === "42P01") {
+  if (error.code === "42P01" || error.code === "PGRST205") {
     return "La tabla whitelist_applications todavía no existe. Ejecuta supabase/migrations/001_whitelist.sql en el SQL Editor de Supabase.";
   }
   if (error.code === "42501" || error.code === "PGRST301") {
