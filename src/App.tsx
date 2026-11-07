@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Sky } from "./components/Sky";
 import { Navbar } from "./components/Navbar";
 import { Hero } from "./components/Hero";
@@ -26,6 +26,9 @@ function SiteContent() {
   );
   const [minWaitPassed, setMinWaitPassed] = useState(false);
   const [maxWaitPassed, setMaxWaitPassed] = useState(false);
+  const [doorsAllowed, setDoorsAllowed] = useState(false);
+  const [waitingForGesture, setWaitingForGesture] = useState(false);
+  const audioCheckStartedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,11 +59,47 @@ function SiteContent() {
     maxWaitPassed ||
     (fontsReady && pageReady && audioReady && minWaitPassed);
 
-  const handleDoorsOpened = useCallback(() => {
-    setDoorsOpen(true);
-    startMusic();
-  }, [startMusic]);
+  useEffect(() => {
+    if (!ready || audioCheckStartedRef.current) return;
+    audioCheckStartedRef.current = true;
 
+    void startMusic().then((result) => {
+      if (result === "blocked") {
+        setWaitingForGesture(true);
+      } else {
+        setDoorsAllowed(true);
+      }
+    });
+  }, [ready, startMusic]);
+
+  useEffect(() => {
+    if (!waitingForGesture || doorsAllowed) return;
+
+    const openWithGesture = () => {
+      void startMusic();
+      setWaitingForGesture(false);
+      setDoorsAllowed(true);
+    };
+    const events = ["pointerdown", "keydown", "touchstart"];
+
+    events.forEach((event) => {
+      window.addEventListener(event, openWithGesture, { once: true });
+    });
+
+    const fallback = window.setTimeout(() => {
+      setWaitingForGesture(false);
+      setDoorsAllowed(true);
+    }, 10000);
+
+    return () => {
+      events.forEach((event) => {
+        window.removeEventListener(event, openWithGesture);
+      });
+      window.clearTimeout(fallback);
+    };
+  }, [doorsAllowed, startMusic, waitingForGesture]);
+
+  const handleDoorsOpened = useCallback(() => setDoorsOpen(true), []);
   const handleDoorsFinished = useCallback(() => setDoorsFinished(true), []);
 
   useEffect(() => {
@@ -115,7 +154,8 @@ function SiteContent() {
       <Footer />
       <MusicControlBar visible={doorsFinished} />
       <GateDoors
-        ready={ready}
+        ready={doorsAllowed}
+        waitingForGesture={waitingForGesture}
         onOpened={handleDoorsOpened}
         onFinished={handleDoorsFinished}
       />

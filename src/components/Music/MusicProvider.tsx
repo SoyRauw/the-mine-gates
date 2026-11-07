@@ -8,7 +8,7 @@ import {
 import themeMusic from "../../assets/audio/dark-fantasy-theme.mp3";
 import { MUSIC_CONFIG } from "../../data/config";
 import { useToast } from "../ui/toast-context";
-import { MusicContext } from "./music-context";
+import { MusicContext, type MusicStartResult } from "./music-context";
 
 type AudioSlot = "a" | "b";
 
@@ -241,32 +241,34 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       .catch(() => setIsPlaying(false));
   }, [applyVolume, getActive, getInactive]);
 
-  const startMusic = useCallback(() => {
-    if (!enabledRef.current) return;
+  const startMusic = useCallback(async (): Promise<MusicStartResult> => {
+    if (!enabledRef.current) return "disabled";
     const active = getActive();
     const inactive = getInactive();
-    if (!active) return;
+    if (!active) return "disabled";
 
     startedRef.current = true;
     active.volume = volumeRef.current;
     active.muted = false;
 
-    void active
-      .play()
-      .then(() => {
-        setIsPlaying(true);
-        setAutoplayBlocked(false);
-      })
-      .catch(() => {
-        setAutoplayBlocked(true);
-        active.muted = true;
-        if (inactive) inactive.muted = true;
+    try {
+      await active.play();
+      setIsPlaying(true);
+      setAutoplayBlocked(false);
+      return "playing";
+    } catch {
+      setAutoplayBlocked(true);
+      active.muted = true;
+      if (inactive) inactive.muted = true;
 
-        void active
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      });
+      try {
+        await active.play();
+        setIsPlaying(true);
+      } catch {
+        setIsPlaying(false);
+      }
+      return "blocked";
+    }
   }, [getActive, getInactive]);
 
   useEffect(() => {

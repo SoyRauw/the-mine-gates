@@ -69,7 +69,8 @@ La música está en `src/assets/audio/dark-fantasy-theme.mp3` (copia del MP3 ori
 
 - Las puertas permanecen cerradas hasta que las fuentes, la página y el audio están listos (máximo 8 s), con una runa de carga.
 - Al abrirse, revelan la página progresivamente con un destello de portal; no queda un fondo negro residual.
-- La música intenta reproducirse al abrir las puertas. Si el navegador la bloquea, empieza silenciada y se activa con el primer clic, toque o tecla, sin ningún modal.
+- Si el navegador permite el audio, las puertas se abren solas con la música sonando.
+- Si lo bloquea, las puertas esperan con la runa central pulsando. El primer clic, toque o tecla abre las puertas y arranca la música con sonido, sin modal ni pregunta. Si pasan 10 s sin interacción, se abren en silencio para no bloquear la entrada.
 - El tema se reproduce en bucle infinito con crossfade de 2 segundos.
 - El control flotante inferior izquierdo permite silenciar/activar y ajustar el volumen.
 - Se recuerdan en `localStorage` el estado de música y el volumen.

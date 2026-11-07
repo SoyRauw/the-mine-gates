@@ -4,10 +4,12 @@ import { RuneIcon } from "./ui/RuneIcon";
 
 export function GateDoors({
   ready,
+  waitingForGesture = false,
   onOpened,
   onFinished,
 }: {
   ready: boolean;
+  waitingForGesture?: boolean;
   onOpened: () => void;
   onFinished: () => void;
 }) {
@@ -58,7 +60,9 @@ export function GateDoors({
   if (reduce || hidden) return null;
 
   return (
-    <div className={`gate-doors${open ? " is-open" : ""}`}>
+    <div
+      className={`gate-doors${open ? " is-open" : ""}${waitingForGesture ? " is-waiting" : ""}`}
+    >
       <div className="gate-doors__flash" aria-hidden="true" />
       <div className="gate-doors__portal" aria-hidden="true" />
       <div className="gate-doors__light" aria-hidden="true" />
@@ -91,17 +95,19 @@ export function GateDoors({
         <RuneIcon variant="arcane" size={112} />
       </div>
 
-      <div className="gate-doors__loading" role="status" aria-live="polite">
-        <span className="gate-doors__loading-rune" aria-hidden="true">
-          <RuneIcon variant="arcane" size={34} />
-        </span>
-        <span>
-          {ready ? "La Puerta se abre…" : "La Puerta está despertando…"}
-        </span>
-        <span className="gate-doors__loading-bar" aria-hidden="true">
-          <span />
-        </span>
-      </div>
+      {waitingForGesture ? null : (
+        <div className="gate-doors__loading" role="status" aria-live="polite">
+          <span className="gate-doors__loading-rune" aria-hidden="true">
+            <RuneIcon variant="arcane" size={34} />
+          </span>
+          <span>
+            {ready ? "La Puerta se abre…" : "La Puerta está despertando…"}
+          </span>
+          <span className="gate-doors__loading-bar" aria-hidden="true">
+            <span />
+          </span>
+        </div>
+      )}
     </div>
   );
 }

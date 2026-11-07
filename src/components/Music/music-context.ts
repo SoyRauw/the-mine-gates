@@ -1,5 +1,7 @@
 import { createContext, useContext } from "react";
 
+export type MusicStartResult = "playing" | "blocked" | "disabled";
+
 export interface MusicContextValue {
   enabled: boolean;
   isPlaying: boolean;
@@ -7,7 +9,7 @@ export interface MusicContextValue {
   isBlocked: boolean;
   audioReady: boolean;
   volume: number;
-  startMusic: () => void;
+  startMusic: () => Promise<MusicStartResult>;
   toggle: () => void;
   setVolume: (value: number) => void;
 }

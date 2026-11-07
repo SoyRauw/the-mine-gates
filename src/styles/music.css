@@ -21,6 +21,40 @@ body.doors-closed {
   pointer-events: none;
 }
 
+.gate-doors.is-waiting {
+  cursor: pointer;
+}
+
+.gate-doors.is-waiting .gate-doors__lock {
+  animation: gate-lock-pulse 2s ease-in-out infinite;
+}
+
+.gate-doors.is-waiting .gate-doors__light {
+  animation: gate-seam-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gate-lock-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    filter: drop-shadow(0 0 18px rgba(201, 168, 92, 0.4));
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.07);
+    filter: drop-shadow(0 0 38px rgba(240, 213, 138, 0.65));
+  }
+}
+
+@keyframes gate-seam-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .gate-doors__flash {
   position: absolute;
   inset: 0;
