@@ -83,6 +83,9 @@ export function Footer() {
             <h3 className="footer__col-title">El Gremio</h3>
             <ul>
               <li>
+                <a href="#whitelist">Solicitar whitelist</a>
+              </li>
+              <li>
                 <ConfigLink
                   href={CONFIG.discordUrl}
                   placeholder="El enlace de Discord estará disponible muy pronto."
@@ -158,6 +161,11 @@ export function Footer() {
           <p>
             Minecraft es una marca de Mojang Studios. No afiliado oficialmente
             con Mojang o Microsoft.
+          </p>
+          <p>
+            <a className="footer__staff-link" href="./admin.html">
+              Acceso del staff
+            </a>
           </p>
         </div>
       </div>

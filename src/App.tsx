@@ -7,6 +7,7 @@ import { MagicSection } from "./components/Magic/MagicSection";
 import { Features } from "./components/Features";
 import { HowToPlay } from "./components/HowToPlay";
 import { Rules } from "./components/Rules";
+import { Whitelist } from "./components/Whitelist";
 import { Footer } from "./components/Footer";
 import { ToastProvider } from "./components/ui/Toast";
 import { MusicProvider } from "./components/Music/MusicProvider";
@@ -148,6 +149,7 @@ function SiteContent() {
           <Features />
           <HowToPlay />
           <Rules />
+          <Whitelist />
         </div>
       </main>
 

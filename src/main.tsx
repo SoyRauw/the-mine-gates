@@ -9,6 +9,7 @@ import "./styles/fantasy.css";
 import "./styles/site.css";
 import "./styles/magic.css";
 import "./styles/music.css";
+import "./styles/whitelist.css";
 import App from "./App";
 
 createRoot(document.getElementById("root")!).render(

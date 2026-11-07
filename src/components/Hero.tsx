@@ -8,7 +8,6 @@ import {
 } from "motion/react";
 import type { PointerEvent } from "react";
 import { CONFIG } from "../data/config";
-import { ConfigLink } from "./ui/ConfigLink";
 import { IpWidget } from "./IpWidget";
 import { HeroGate } from "./HeroGate";
 import { RuneIcon } from "./ui/RuneIcon";
@@ -122,16 +121,12 @@ export function Hero({ doorsOpen }: { doorsOpen: boolean }) {
         <motion.div className="hero__actions" variants={item}>
           <IpWidget />
           <div className="hero__cta">
-            <a className="fd-btn fd-btn--fire" href="#como-jugar">
+            <a className="fd-btn fd-btn--fire" href="#whitelist">
+              Solicitar whitelist
+            </a>
+            <a className="fd-btn fd-btn--ghost" href="#como-jugar">
               Cómo jugar
             </a>
-            <ConfigLink
-              className="fd-btn fd-btn--ghost"
-              href={CONFIG.discordUrl}
-              placeholder="El enlace de Discord estará disponible muy pronto."
-            >
-              Unirse al Discord
-            </ConfigLink>
           </div>
         </motion.div>
       </motion.div>

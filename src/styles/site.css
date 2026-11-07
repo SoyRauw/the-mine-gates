@@ -1923,6 +1923,16 @@ a {
   margin: 0;
 }
 
+.footer__staff-link {
+  color: var(--fd-gold-dim);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer__staff-link:hover {
+  color: var(--fd-gold-hi);
+}
+
 .back-to-top {
   position: fixed;
   right: 1rem;

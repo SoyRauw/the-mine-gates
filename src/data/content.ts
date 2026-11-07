@@ -7,6 +7,7 @@ export const NAV_LINKS = [
   { id: "caracteristicas", label: "Características" },
   { id: "como-jugar", label: "Cómo Jugar" },
   { id: "reglas", label: "Reglas" },
+  { id: "whitelist", label: "Whitelist" },
 ] as const;
 
 export interface Feature {

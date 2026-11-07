@@ -1,0 +1,348 @@
+/* Solicitud de whitelist · landing pública */
+
+.whitelist-section {
+  position: relative;
+}
+
+.whitelist-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    60% 55% at 50% 45%,
+    rgba(75, 31, 168, 0.22),
+    transparent 72%
+  );
+}
+
+.whitelist-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  align-items: start;
+  gap: clamp(1rem, 2.5vw, 1.6rem);
+}
+
+.whitelist-intro,
+.whitelist-form-panel {
+  height: 100%;
+}
+
+.whitelist-intro {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.whitelist-intro__seal {
+  position: absolute;
+  top: -1.4rem;
+  right: -1.2rem;
+  display: grid;
+  width: 150px;
+  height: 150px;
+  place-items: center;
+  border: 1px solid rgba(201, 168, 92, 0.18);
+  border-radius: 50%;
+  color: rgba(201, 168, 92, 0.38);
+  background: radial-gradient(
+    circle,
+    rgba(201, 168, 92, 0.1),
+    transparent 66%
+  );
+  pointer-events: none;
+}
+
+.whitelist-intro__title {
+  max-width: 16ch;
+  margin-top: 0.65rem;
+  font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+}
+
+.whitelist-steps {
+  display: grid;
+  gap: 1.15rem;
+  margin-top: 1.8rem;
+}
+
+.whitelist-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.9rem;
+}
+
+.whitelist-step__numeral {
+  display: grid;
+  width: 2.35rem;
+  height: 2.35rem;
+  place-items: center;
+  border: 1px solid rgba(201, 168, 92, 0.45);
+  color: var(--fd-gold);
+  font: 700 0.72rem var(--fd-font-title);
+  letter-spacing: 0.08em;
+  background: radial-gradient(circle, var(--fd-panel-2), #07041a);
+}
+
+.whitelist-step strong {
+  display: block;
+  color: var(--fd-gold-hi);
+  font: 600 0.86rem var(--fd-font-title);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.whitelist-step p {
+  margin: 0.3rem 0 0;
+  color: var(--fd-ink-dim);
+  font-size: 0.98rem;
+  line-height: 1.55;
+}
+
+.whitelist-intro__privacy {
+  margin: auto 0 0;
+  padding-top: 1.5rem;
+  color: var(--fd-ink-dim);
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------
+   Formulario
+   ------------------------------------------------------------ */
+.whitelist-form-panel {
+  padding: clamp(1.2rem, 3vw, 2rem);
+}
+
+.whitelist-form,
+.whitelist-success {
+  display: grid;
+  align-content: start;
+  gap: 1rem;
+}
+
+.whitelist-form__title,
+.whitelist-success__title {
+  margin: 0 0 0.2rem;
+  font-size: clamp(1.5rem, 2.8vw, 2rem);
+}
+
+.whitelist-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.whitelist-field label {
+  color: var(--fd-gold-hi);
+  font: 600 0.76rem var(--fd-font-title);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.whitelist-field input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--fd-gold-dim);
+  border-radius: 2px;
+  color: var(--fd-ink);
+  background: #07041a;
+  box-shadow: inset 0 0 0 2px #07041a;
+  font: 500 1.08rem/1.4 var(--fd-font-body);
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
+}
+
+.whitelist-field input::placeholder {
+  color: #6d6885;
+}
+
+.whitelist-field input:hover {
+  border-color: rgba(201, 168, 92, 0.75);
+}
+
+.whitelist-field input:focus-visible {
+  border-color: var(--fd-gold);
+  outline: none;
+  box-shadow:
+    inset 0 0 0 2px #07041a,
+    0 0 0 3px rgba(201, 168, 92, 0.22);
+}
+
+.whitelist-field input[aria-invalid="true"] {
+  border-color: var(--fd-blood);
+  box-shadow:
+    inset 0 0 0 2px #07041a,
+    0 0 0 3px rgba(224, 36, 58, 0.16);
+}
+
+.whitelist-field__hint,
+.whitelist-field__error {
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.whitelist-field__hint {
+  color: var(--fd-ink-dim);
+}
+
+.whitelist-field__error {
+  color: #ff9aa5;
+}
+
+.whitelist-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  cursor: pointer;
+  color: var(--fd-ink-dim);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.whitelist-check input {
+  width: 19px;
+  height: 19px;
+  margin-top: 0.18rem;
+  flex: none;
+  accent-color: var(--fd-gold);
+  cursor: pointer;
+}
+
+.whitelist-check input:focus-visible {
+  outline: 2px solid var(--fd-gold-hi);
+  outline-offset: 3px;
+}
+
+.whitelist-check a {
+  color: var(--fd-gold-hi);
+  text-underline-offset: 3px;
+}
+
+.whitelist-check a:hover {
+  color: #fff;
+}
+
+.whitelist-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.whitelist-error {
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgba(224, 36, 58, 0.55);
+  color: #ffc9d0;
+  background: rgba(224, 36, 58, 0.12);
+  font-size: 0.92rem;
+}
+
+.whitelist-submit {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.whitelist-submit:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.whitelist-form__note {
+  margin: 0;
+  color: var(--fd-ink-dim);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------
+   Éxito
+   ------------------------------------------------------------ */
+.whitelist-success {
+  justify-items: center;
+  height: 100%;
+  padding-block: 0.5rem;
+  text-align: center;
+}
+
+.whitelist-success__rune {
+  display: grid;
+  width: 116px;
+  height: 116px;
+  place-items: center;
+  border: 1px solid rgba(201, 168, 92, 0.4);
+  border-radius: 50%;
+  color: var(--fd-gold);
+  background: radial-gradient(circle, rgba(201, 168, 92, 0.13), transparent 68%);
+  box-shadow: 0 0 32px rgba(201, 168, 92, 0.16);
+  animation: whitelist-seal-breathe 5s ease-in-out infinite;
+}
+
+.whitelist-success p {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--fd-ink-dim);
+}
+
+.whitelist-success__note {
+  font-size: 0.88rem;
+  font-style: italic;
+}
+
+.whitelist-success .fd-btn {
+  margin-top: 0.4rem;
+}
+
+@keyframes whitelist-seal-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 24px rgba(201, 168, 92, 0.14);
+  }
+  50% {
+    box-shadow: 0 0 46px rgba(240, 213, 138, 0.3);
+  }
+}
+
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+@media (max-width: 960px) {
+  .whitelist-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .whitelist-intro__seal {
+    width: 120px;
+    height: 120px;
+    top: -1.8rem;
+    right: -1.4rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .whitelist-intro__title {
+    max-width: none;
+  }
+
+  .whitelist-step {
+    gap: 0.7rem;
+  }
+
+  .whitelist-intro__seal {
+    opacity: 0.45;
+  }
+
+  .whitelist-form-panel {
+    padding: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whitelist-success__rune {
+    animation: none;
+  }
+}
