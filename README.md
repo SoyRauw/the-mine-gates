@@ -67,8 +67,9 @@ Cámbiala por la IP real cuando la tengas. El indicador “Servidor Online” es
 
 La música está en `src/assets/audio/dark-fantasy-theme.mp3` (copia del MP3 original; el archivo de la raíz se conserva solo como respaldo local y está ignorado por git).
 
-- Al cargar, las puertas de la Puerta se abren automáticamente.
-- La música intenta reproducirse sola. Si el navegador la bloquea, empieza silenciada y se activa con el primer clic, toque o tecla, sin ningún modal.
+- Las puertas permanecen cerradas hasta que las fuentes, la página y el audio están listos (máximo 8 s), con una runa de carga.
+- Al abrirse, revelan la página progresivamente con un destello de portal; no queda un fondo negro residual.
+- La música intenta reproducirse al abrir las puertas. Si el navegador la bloquea, empieza silenciada y se activa con el primer clic, toque o tecla, sin ningún modal.
 - El tema se reproduce en bucle infinito con crossfade de 2 segundos.
 - El control flotante inferior izquierdo permite silenciar/activar y ajustar el volumen.
 - Se recuerdan en `localStorage` el estado de música y el volumen.

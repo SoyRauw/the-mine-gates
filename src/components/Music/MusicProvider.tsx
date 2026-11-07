@@ -48,6 +48,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(readStoredVolume);
   const [isPlaying, setIsPlaying] = useState(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
 
   const audioARef = useRef<HTMLAudioElement>(null);
   const audioBRef = useRef<HTMLAudioElement>(null);
@@ -56,6 +57,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const fadingRef = useRef(false);
   const enabledRef = useRef(enabled);
   const volumeRef = useRef(volume);
+  const startedRef = useRef(false);
   const errorShownRef = useRef(false);
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const inactive = getInactive();
     if (!active) return;
 
+    startedRef.current = true;
     active.muted = false;
     if (inactive) inactive.muted = false;
 
@@ -198,7 +201,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     [getActive],
   );
 
+  const handleCanPlay = useCallback(() => {
+    setAudioReady(true);
+  }, []);
+
   const handleError = useCallback(() => {
+    setAudioReady(true);
     if (errorShownRef.current) return;
     errorShownRef.current = true;
     showToast("No se pudo cargar la música de la Puerta.");
@@ -209,6 +217,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const inactive = getInactive();
     if (!active) return;
 
+    startedRef.current = true;
     let nextVolume = volumeRef.current;
     if (nextVolume === 0) {
       nextVolume = MUSIC_CONFIG.defaultVolume;
@@ -232,44 +241,32 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       .catch(() => setIsPlaying(false));
   }, [applyVolume, getActive, getInactive]);
 
-  useEffect(() => {
+  const startMusic = useCallback(() => {
     if (!enabledRef.current) return;
     const active = getActive();
     const inactive = getInactive();
     if (!active) return;
 
-    let cancelled = false;
+    startedRef.current = true;
+    active.volume = volumeRef.current;
+    active.muted = false;
 
-    const attempt = async () => {
-      active.volume = volumeRef.current;
-      active.muted = false;
-
-      try {
-        await active.play();
-        if (!cancelled) {
-          setIsPlaying(true);
-          setAutoplayBlocked(false);
-        }
-      } catch {
-        if (cancelled) return;
-
+    void active
+      .play()
+      .then(() => {
+        setIsPlaying(true);
+        setAutoplayBlocked(false);
+      })
+      .catch(() => {
         setAutoplayBlocked(true);
         active.muted = true;
         if (inactive) inactive.muted = true;
 
-        try {
-          await active.play();
-          if (!cancelled) setIsPlaying(true);
-        } catch {
-          if (!cancelled) setIsPlaying(false);
-        }
-      }
-    };
-
-    void attempt();
-    return () => {
-      cancelled = true;
-    };
+        void active
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
+      });
   }, [getActive, getInactive]);
 
   useEffect(() => {
@@ -354,7 +351,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const audioB = audioBRef.current;
 
     const resume = () => {
-      if (document.hidden || !enabledRef.current) return;
+      if (document.hidden || !enabledRef.current || !startedRef.current) return;
       const active = getActive();
       if (active?.paused) {
         void active.play().catch(() => {});
@@ -384,7 +381,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         isPlaying,
         isMuted,
         isBlocked: autoplayBlocked,
+        audioReady,
         volume,
+        startMusic,
         toggle,
         setVolume,
       }}
@@ -395,6 +394,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         className="music-audio"
         src={themeMusic}
         preload="auto"
+        onCanPlay={handleCanPlay}
         onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
         onEnded={(event) => handleEnded(event.currentTarget)}
         onError={handleError}
@@ -404,6 +404,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         className="music-audio"
         src={themeMusic}
         preload="auto"
+        onCanPlay={handleCanPlay}
         onTimeUpdate={(event) => handleTimeUpdate(event.currentTarget)}
         onEnded={(event) => handleEnded(event.currentTarget)}
         onError={handleError}

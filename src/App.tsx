@@ -11,13 +11,56 @@ import { Footer } from "./components/Footer";
 import { ToastProvider } from "./components/ui/Toast";
 import { MusicProvider } from "./components/Music/MusicProvider";
 import { MusicControlBar } from "./components/Music/MusicControlBar";
+import { useMusic } from "./components/Music/music-context";
 import { GateDoors } from "./components/GateDoors";
 
-function App() {
+function SiteContent() {
+  const { audioReady, startMusic } = useMusic();
   const [doorsOpen, setDoorsOpen] = useState(false);
   const [doorsFinished, setDoorsFinished] = useState(false);
+  const [fontsReady, setFontsReady] = useState(
+    () => !document.fonts?.ready,
+  );
+  const [pageReady, setPageReady] = useState(
+    () => document.readyState === "complete",
+  );
+  const [minWaitPassed, setMinWaitPassed] = useState(false);
+  const [maxWaitPassed, setMaxWaitPassed] = useState(false);
 
-  const handleDoorsOpened = useCallback(() => setDoorsOpen(true), []);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) setFontsReady(true);
+      });
+    }
+
+    const onLoad = () => setPageReady(true);
+    if (document.readyState !== "complete") {
+      window.addEventListener("load", onLoad, { once: true });
+    }
+
+    const minTimer = window.setTimeout(() => setMinWaitPassed(true), 600);
+    const maxTimer = window.setTimeout(() => setMaxWaitPassed(true), 8000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", onLoad);
+      window.clearTimeout(minTimer);
+      window.clearTimeout(maxTimer);
+    };
+  }, []);
+
+  const ready =
+    maxWaitPassed ||
+    (fontsReady && pageReady && audioReady && minWaitPassed);
+
+  const handleDoorsOpened = useCallback(() => {
+    setDoorsOpen(true);
+    startMusic();
+  }, [startMusic]);
+
   const handleDoorsFinished = useCallback(() => setDoorsFinished(true), []);
 
   useEffect(() => {
@@ -47,37 +90,44 @@ function App() {
   }, [doorsFinished]);
 
   return (
+    <div className="app fd" data-realm="twilight">
+      <Sky />
+      <div className="sky-veil" aria-hidden="true" />
+      <div className="fd-fog" aria-hidden="true" />
+      <div className="fd-vignette" aria-hidden="true" />
+      <a className="skip-link" href="#contenido">
+        Saltar al contenido
+      </a>
+
+      <Navbar />
+
+      <main id="contenido">
+        <Hero doorsOpen={doorsOpen} />
+        <div className="page-body">
+          <Lore />
+          <MagicSection />
+          <Features />
+          <HowToPlay />
+          <Rules />
+        </div>
+      </main>
+
+      <Footer />
+      <MusicControlBar visible={doorsFinished} />
+      <GateDoors
+        ready={ready}
+        onOpened={handleDoorsOpened}
+        onFinished={handleDoorsFinished}
+      />
+    </div>
+  );
+}
+
+function App() {
+  return (
     <ToastProvider>
       <MusicProvider>
-        <div className="app fd" data-realm="twilight">
-          <Sky />
-          <div className="sky-veil" aria-hidden="true" />
-          <div className="fd-fog" aria-hidden="true" />
-          <div className="fd-vignette" aria-hidden="true" />
-          <a className="skip-link" href="#contenido">
-            Saltar al contenido
-          </a>
-
-          <Navbar />
-
-          <main id="contenido">
-            <Hero doorsOpen={doorsOpen} />
-            <div className="page-body">
-              <Lore />
-              <MagicSection />
-              <Features />
-              <HowToPlay />
-              <Rules />
-            </div>
-          </main>
-
-          <Footer />
-          <MusicControlBar visible={doorsFinished} />
-          <GateDoors
-            onOpened={handleDoorsOpened}
-            onFinished={handleDoorsFinished}
-          />
-        </div>
+        <SiteContent />
       </MusicProvider>
     </ToastProvider>
   );

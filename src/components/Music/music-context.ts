@@ -5,7 +5,9 @@ export interface MusicContextValue {
   isPlaying: boolean;
   isMuted: boolean;
   isBlocked: boolean;
+  audioReady: boolean;
   volume: number;
+  startMusic: () => void;
   toggle: () => void;
   setVolume: (value: number) => void;
 }
